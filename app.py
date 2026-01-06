@@ -38,16 +38,16 @@ def create_glow_map(base_color):
 
 
 THEMES = {
-    "loot": {"cmap": create_glow_map("#00FF66"), "label": "loot"},  # Neon Green
-    "fight": {"cmap": create_glow_map("#FFCC00"), "label": "fight"},  # Electric Gold
-    "death": {"cmap": create_glow_map("#FF0033"), "label": "death"}  # Vivid Blood Red
+    "loot": {"cmap": create_glow_map("#00FF66"), "label": "LOOT"},  # Neon Green
+    "fight": {"cmap": create_glow_map("#FFCC00"), "label": "FIGHT"},  # Electric Gold
+    "death": {"cmap": create_glow_map("#FF0033"), "label": "DEATH"}  # Vivid Blood Red
 }
 
 conn = st.connection("supabase", type=SupabaseConnection)
 
 with st.sidebar:
     st.header("🎮 Controls")
-    active_event = st.selectbox("Event Category", ["Loot", "Fight", "Death"])
+    active_event = st.selectbox("Event Category", ["loot", "fight", "death"])
 
     st.divider()
     st.subheader("Visual Tuning")

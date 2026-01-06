@@ -22,7 +22,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🔥 DAM Battlegrounds - Pro Heatmap")
+st.title(" DAM Battlegrounds Heatmap")
 
 MAP_IMAGE = "DamBattlegrounds.png"
 img = plt.imread(MAP_IMAGE)

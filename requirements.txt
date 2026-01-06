@@ -1,0 +1,6 @@
+pandas
+numpy
+matplotlib
+scipy
+st-supabase-connection
+streamlit-image-coordinates

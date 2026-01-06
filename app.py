@@ -22,7 +22,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title(" DAM Battlegrounds Heatmap")
+st.title("Dam Battlegrounds Heatmap")
 
 MAP_IMAGE = "DamBattlegrounds.png"
 img = plt.imread(MAP_IMAGE)
@@ -38,16 +38,16 @@ def create_glow_map(base_color):
 
 
 THEMES = {
-    "loot": {"cmap": create_glow_map("#00FF66"), "label": "LOOT"},  # Neon Green
-    "fight": {"cmap": create_glow_map("#FFCC00"), "label": "FIGHT"},  # Electric Gold
-    "death": {"cmap": create_glow_map("#FF0033"), "label": "DEATH"}  # Vivid Blood Red
+    "loot": {"cmap": create_glow_map("#00FF66"), "label": "loot"},  # Neon Green
+    "fight": {"cmap": create_glow_map("#FFCC00"), "label": "fight"},  # Electric Gold
+    "death": {"cmap": create_glow_map("#FF0033"), "label": "death"}  # Vivid Blood Red
 }
 
 conn = st.connection("supabase", type=SupabaseConnection)
 
 with st.sidebar:
     st.header("🎮 Controls")
-    active_event = st.selectbox("Event Category", ["loot", "fight", "death"])
+    active_event = st.selectbox("Event Category", ["Loot", "Fight", "Death"])
 
     st.divider()
     st.subheader("Visual Tuning")
@@ -58,13 +58,31 @@ with st.sidebar:
     st.divider()
     render_btn = st.button("🚀 Render/Refresh Heatmap", use_container_width=True)
 
+    st.markdown("---")  # A horizontal line for separation
+    st.markdown("### ℹ️ About")
+    st.caption("""
+            **Disclaimer:** This is a fan-made tool created for the community. 
+            It is not affiliated with, endorsed, or sponsored by **Embark Studios**. 
+            All game assets, including map imagery, are the property of Embark Studios.
+        """)
+
+    st.caption("""
+            **Credits:** Map image and zone titles sourced from 
+            [MetaForge](https://metaforge.app).
+        """)
+    st.caption("""
+        **Version 0.1.0 (Early Access)** This tool is a community passion project. I am currently in active development 
+        using free hosting—if things feel a bit slow during peak raid hours, 
+        thanks for your patience!
+    """)
+
 # ======================
 # 3. LAYOUT (SIDE-BY-SIDE)
 # ======================
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader(f"📍 Log {active_event.upper()}")
+    st.subheader(f"Log your {active_event.upper()}")
 
     # Capture clicks and scale them accurately
     value = streamlit_image_coordinates(MAP_IMAGE, key="map_logger", use_column_width=True)
@@ -84,7 +102,7 @@ with col1:
             st.error(f"Save failed: {e}")
 
 with col2:
-    st.subheader("📊 Tactical Analysis")
+    st.subheader("Community map")
 
     if render_btn:
         try:

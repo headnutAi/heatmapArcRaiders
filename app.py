@@ -9,13 +9,13 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 st.set_page_config(layout="wide", page_title="DAM Battlegrounds Heatmap")
 
-# Initialize Session States
+
 if "last_clicked_coords" not in st.session_state:
     st.session_state.last_clicked_coords = None
 if "show_success" not in st.session_state:
     st.session_state.show_success = None
 
-# Custom CSS
+
 st.markdown("""
     <style>
     [data-testid="stHorizontalBlock"] { align-items: flex-start !important; }
@@ -53,7 +53,7 @@ if st.session_state.show_success:
     st.toast(st.session_state.show_success, icon="✅")
     st.session_state.show_success = None
 
-# --- SIDEBAR ---
+
 with st.sidebar:
     st.header("🎮 Controls")
 
@@ -87,18 +87,17 @@ with st.sidebar:
     st.divider()
     render_btn = st.button("🚀 Render Heatmap", use_container_width=True)
 
-# Determine the Final Active Filter
-# We prioritize the Item selection if it's not "None"
+
 final_item = selected_item if selected_item != "None" else None
 final_event = active_event if active_event != "None" else None
 
-# If an item is picked, the event type MUST be loot
+
 if final_item:
     final_event = "loot"
 
 col1, col2 = st.columns([1, 1])
 
-# --- COLUMN 1: LOGGER ---
+
 with col1:
     if not final_event:
         st.info("💡 Select an **Event Category** or an **Item** to log data.")
@@ -115,7 +114,7 @@ with col1:
             real_y = int(value["y"] * scale_y)
 
             try:
-                # IMPORTANT: Ensure your Supabase table has an 'item_name' column
+
                 payload = {
                     "x": real_x,
                     "y": real_y,
@@ -131,7 +130,7 @@ with col1:
             except Exception as e:
                 st.error(f"Save failed: {e}")
 
-# --- COLUMN 2: VISUALIZER ---
+
 with col2:
     if final_event:
         st.subheader(f"Map for {(final_item if final_item else final_event).upper()}")
@@ -148,10 +147,10 @@ with col2:
                 if raw_data:
                     df = pd.DataFrame(raw_data)
 
-                    # 1. Filter by Event Type (loot/fight/death)
+
                     subset = df[df["event_type"] == final_event].copy()
 
-                    # 2. If we are looking for a specific item, filter further
+
                     if final_item:
                         subset = subset[subset["item_name"] == final_item]
 

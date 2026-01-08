@@ -30,8 +30,10 @@ img_h, img_w = img.shape[:2]
 
 conn = st.connection("supabase", type=SupabaseConnection)
 
+
 def create_glow_map(base_color):
     return LinearSegmentedColormap.from_list("glow", ["#00000000", base_color, "#FFFFFF"])
+
 
 THEMES = {
     "loot": {"cmap": create_glow_map("#00FF66")},
@@ -40,10 +42,12 @@ THEMES = {
     "plant_mode": {"cmap": create_glow_map("#AFEEEE")}
 }
 
+
 def reset_filters():
     st.session_state.sel_cat_box = "None"
     st.session_state.sel_item_box = "None"
     st.session_state.sel_plant_box = "None"
+
 
 if st.session_state.show_success:
     st.toast(st.session_state.show_success, icon="✅")
@@ -58,21 +62,41 @@ with st.sidebar:
 
     active_event = st.selectbox(
         "1. Select a Event",
-        ["None", "loot", "fight", "death"],
+        ["None", "loot 💰", "fight ⚔️", "death 💀"],
         key="sel_cat_box",
         disabled=(item_val != "None" or plant_val != "None"),
     )
 
     selected_item = st.selectbox(
         "2. Select a Specific Item",
-        ["None", "Rusted gears", "Laboratory Reagents", "Antiseptics"],
+        [
+            "None",
+            "Rusted gears ⚙️",
+            "Laboratory Reagents 🧪",
+            "Antiseptics 🧼",
+            "Power Rods 🔋",
+            "Advanced electrical components ⚡",
+            "Mechanical components 🛠️",
+            "Batteries 🔋",
+            "Key cards 💳",
+            "Industrial chargers 🔌",
+            "Industrial magnets 🧲"
+        ],
         key="sel_item_box",
-        disabled=(cat_val != "None" and cat_val != "loot") or (plant_val != "None"),
+        disabled=(cat_val != "None" and "loot" not in cat_val) or (plant_val != "None"),
     )
 
     selected_plant = st.selectbox(
         "2. Select a Specific Plant",
-        ["None", "Mushrooms"],
+        [
+            "None",
+            "Mushrooms 🍄",
+            "Prickly Pears 🌵",
+            "Great Mullein 🌿",
+            "Agave 🌵",
+            "Candleberries 🕯️",
+            "Moss 🟢"
+        ],
         key="sel_plant_box",
         disabled=(cat_val != "None" or item_val != "None"),
     )
@@ -81,6 +105,7 @@ with st.sidebar:
 
     st.divider()
     st.subheader("Visual Tuning")
+    overlay_fight = st.checkbox("Overlay 'Fight' Events ⚔️", value=False)
     sigma_val = st.slider("Heat Intensity (Blur)", 1, 25, 10)
     alpha_val = st.slider("Opacity", 0.1, 1.0, 0.75)
     show_dots = st.checkbox("Show Precise Points", value=False)
@@ -88,9 +113,26 @@ with st.sidebar:
     st.divider()
     render_btn = st.button("🚀 Render Heatmap", use_container_width=True)
 
-final_item = selected_item if selected_item != "None" else None
-final_plant = selected_plant if selected_plant != "None" else None
-final_event = active_event if active_event != "None" else None
+    st.divider()
+    st.caption("""
+            **Disclaimer:** This is an early-version fan tool. Map image is by the Metaforge Team.
+
+            • Data is crowdsourced and may be inaccurate.
+            • Not affiliated with Embark Studios.
+            • Locations may change after game updates.
+            • No personal data is collected
+        """)
+    st.caption("""
+               **Version** 0.1.1 
+           """)
+
+clean_item = selected_item.split(" ")[0] if " " in selected_item else selected_item
+clean_plant = selected_plant.split(" ")[0] if " " in selected_plant else selected_plant
+clean_event = active_event.split(" ")[0] if " " in active_event else active_event
+
+final_item = clean_item if clean_item != "None" else None
+final_plant = clean_plant if clean_plant != "None" else None
+final_event = clean_event if clean_event != "None" else None
 
 if final_plant:
     current_mode = "plant_mode"
@@ -109,7 +151,7 @@ with col1:
     if not current_mode:
         st.info("💡 Select an **Event**, **Item** or a **plant** to log data.")
     else:
-        display_label = final_plant if final_plant else (final_item if final_item else final_event)
+        display_label = selected_plant if final_plant else (selected_item if final_item else active_event)
         st.subheader(f"You can now log {display_label.upper()}")
 
         value = streamlit_image_coordinates(MAP_IMAGE, key="map_logger", use_column_width=True)
@@ -139,7 +181,8 @@ with col1:
 
 with col2:
     if current_mode:
-        st.subheader(f"Map for {display_label.upper()}")
+        title_suffix = " + FIGHT OVERLAY ⚔️" if overlay_fight else ""
+        st.subheader(f"Map for {display_label.upper()}{title_suffix}")
 
     if render_btn:
         if not current_mode:
@@ -152,45 +195,53 @@ with col2:
                 if raw_data:
                     df = pd.DataFrame(raw_data)
 
+                    fig, ax = plt.subplots(figsize=(10, 10 * (img_h / img_w)))
+                    plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+                    ax.axis("off")
+                    ax.imshow(img, aspect='equal')
+
+
+                    def plot_heat(data_subset, mode_key):
+                        if not data_subset.empty:
+                            data_subset['x'] = pd.to_numeric(data_subset['x'])
+                            data_subset['y'] = pd.to_numeric(data_subset['y'])
+                            h, _, _ = np.histogram2d(
+                                data_subset["x"], data_subset["y"],
+                                bins=500, range=[[0, img_w], [0, img_h]]
+                            )
+                            h_smooth = gaussian_filter(h.T, sigma=sigma_val)
+                            thresh = h_smooth.max() * 0.02
+                            h_smooth = np.ma.masked_where(h_smooth <= thresh, h_smooth)
+                            ax.imshow(
+                                h_smooth,
+                                extent=[0, img_w, img_h, 0],
+                                cmap=THEMES[mode_key]["cmap"],
+                                alpha=alpha_val,
+                                origin='upper',
+                                aspect='equal',
+                                interpolation='bilinear',
+                                norm=Normalize(vmin=thresh, vmax=h_smooth.max())
+                            )
+                            if show_dots:
+                                ax.scatter(data_subset["x"], data_subset["y"], c='#00FFFF', s=8, alpha=0.9)
+                            return True
+                        return False
+
+
                     if final_plant:
-                        subset = df[df["plant"] == final_plant].copy()
+                        primary_subset = df[df["plant"] == final_plant].copy()
                     else:
-                        subset = df[df["event_type"] == final_event].copy()
+                        primary_subset = df[df["event_type"] == final_event].copy()
                         if final_item:
-                            subset = subset[subset["item_name"] == final_item]
+                            primary_subset = primary_subset[primary_subset["item_name"] == final_item]
 
-                    if not subset.empty:
-                        subset['x'] = pd.to_numeric(subset['x'])
-                        subset['y'] = pd.to_numeric(subset['y'])
+                    has_primary = plot_heat(primary_subset, current_mode)
 
-                        heatmap, _, _ = np.histogram2d(
-                            subset["x"], subset["y"],
-                            bins=500, range=[[0, img_w], [0, img_h]]
-                        )
+                    if overlay_fight and current_mode != "fight":
+                        fight_subset = df[df["event_type"] == "fight"].copy()
+                        plot_heat(fight_subset, "fight")
 
-                        heatmap_smooth = gaussian_filter(heatmap.T, sigma=sigma_val)
-                        threshold = heatmap_smooth.max() * 0.02
-                        heatmap_smooth = np.ma.masked_where(heatmap_smooth <= threshold, heatmap_smooth)
-
-                        fig, ax = plt.subplots(figsize=(10, 10 * (img_h / img_w)))
-                        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
-                        ax.axis("off")
-                        ax.imshow(img, aspect='equal')
-
-                        ax.imshow(
-                            heatmap_smooth,
-                            extent=[0, img_w, img_h, 0],
-                            cmap=THEMES[current_mode]["cmap"],
-                            alpha=alpha_val,
-                            origin='upper',
-                            aspect='equal',
-                            interpolation='bilinear',
-                            norm=Normalize(vmin=threshold, vmax=heatmap_smooth.max())
-                        )
-
-                        if show_dots:
-                            ax.scatter(subset["x"], subset["y"], c='#00FFFF', s=8, alpha=0.9)
-
+                    if has_primary:
                         st.pyplot(fig, use_container_width=True)
                     else:
                         st.info(f"No points found for {display_label}.")

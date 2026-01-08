@@ -181,7 +181,7 @@ with col1:
 
 with col2:
     if current_mode:
-        title_suffix = " + FIGHT OVERLAY ⚔️" if overlay_fight else ""
+        title_suffix = " with the fight overlay ⚔️" if overlay_fight else ""
         st.subheader(f"Map for {display_label.upper()}{title_suffix}")
 
     if render_btn:

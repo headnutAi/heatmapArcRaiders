@@ -9,12 +9,10 @@ from matplotlib.colors import LinearSegmentedColormap, Normalize
 
 st.set_page_config(layout="wide", page_title="DAM Battlegrounds Heatmap")
 
-
 if "last_clicked_coords" not in st.session_state:
     st.session_state.last_clicked_coords = None
 if "show_success" not in st.session_state:
     st.session_state.show_success = None
-
 
 st.markdown("""
     <style>
@@ -32,48 +30,51 @@ img_h, img_w = img.shape[:2]
 
 conn = st.connection("supabase", type=SupabaseConnection)
 
-
 def create_glow_map(base_color):
     return LinearSegmentedColormap.from_list("glow", ["#00000000", base_color, "#FFFFFF"])
-
 
 THEMES = {
     "loot": {"cmap": create_glow_map("#00FF66")},
     "fight": {"cmap": create_glow_map("#FFCC00")},
-    "death": {"cmap": create_glow_map("#FF0033")}
+    "death": {"cmap": create_glow_map("#FF0033")},
+    "plant_mode": {"cmap": create_glow_map("#AFEEEE")}
 }
-
 
 def reset_filters():
     st.session_state.sel_cat_box = "None"
     st.session_state.sel_item_box = "None"
-
+    st.session_state.sel_plant_box = "None"
 
 if st.session_state.show_success:
     st.toast(st.session_state.show_success, icon="✅")
     st.session_state.show_success = None
-
 
 with st.sidebar:
     st.header("🎮 Controls")
 
     cat_val = st.session_state.get("sel_cat_box", "None")
     item_val = st.session_state.get("sel_item_box", "None")
+    plant_val = st.session_state.get("sel_plant_box", "None")
 
-    # 1. Category Selection
     active_event = st.selectbox(
-        "1. Select Event Category",
+        "1. Select a Event",
         ["None", "loot", "fight", "death"],
         key="sel_cat_box",
-        disabled=(item_val != "None"),
+        disabled=(item_val != "None" or plant_val != "None"),
     )
 
-    # 2. Item Selection
     selected_item = st.selectbox(
-        "2. OR Select Specific Item",
-        ["None", "Rusted gears", "Mushrooms", "Laboratory Reagents", "Antiseptics"],
+        "2. Select a Specific Item",
+        ["None", "Rusted gears", "Laboratory Reagents", "Antiseptics"],
         key="sel_item_box",
-        disabled=(cat_val != "None" and cat_val != "loot"),
+        disabled=(cat_val != "None" and cat_val != "loot") or (plant_val != "None"),
+    )
+
+    selected_plant = st.selectbox(
+        "2. Select a Specific Plant",
+        ["None", "Mushrooms"],
+        key="sel_plant_box",
+        disabled=(cat_val != "None" or item_val != "None"),
     )
 
     st.button("🔄 Reset All Filters", on_click=reset_filters, use_container_width=True)
@@ -87,22 +88,28 @@ with st.sidebar:
     st.divider()
     render_btn = st.button("🚀 Render Heatmap", use_container_width=True)
 
-
 final_item = selected_item if selected_item != "None" else None
+final_plant = selected_plant if selected_plant != "None" else None
 final_event = active_event if active_event != "None" else None
 
+if final_plant:
+    current_mode = "plant_mode"
+elif final_event:
+    current_mode = final_event
+else:
+    current_mode = None
 
 if final_item:
     final_event = "loot"
+    current_mode = "loot"
 
 col1, col2 = st.columns([1, 1])
 
-
 with col1:
-    if not final_event:
-        st.info("💡 Select an **Event Category** or an **Item** to log data.")
+    if not current_mode:
+        st.info("💡 Select an **Event**, **Item** or a **plant** to log data.")
     else:
-        display_label = final_item if final_item else final_event
+        display_label = final_plant if final_plant else (final_item if final_item else final_event)
         st.subheader(f"You can now log {display_label.upper()}")
 
         value = streamlit_image_coordinates(MAP_IMAGE, key="map_logger", use_column_width=True)
@@ -114,12 +121,12 @@ with col1:
             real_y = int(value["y"] * scale_y)
 
             try:
-
                 payload = {
                     "x": real_x,
                     "y": real_y,
-                    "event_type": final_event,
-                    "item_name": final_item if final_item else "General"
+                    "event_type": final_event if final_event else "None",
+                    "item_name": final_item if final_item else "None",
+                    "plant": final_plant if final_plant else "None"
                 }
 
                 conn.table("events").insert(payload).execute()
@@ -130,14 +137,12 @@ with col1:
             except Exception as e:
                 st.error(f"Save failed: {e}")
 
-
 with col2:
-    if final_event:
-        st.subheader(f"Map for {(final_item if final_item else final_event).upper()}")
-
+    if current_mode:
+        st.subheader(f"Map for {display_label.upper()}")
 
     if render_btn:
-        if not final_event:
+        if not current_mode:
             st.error("Select a filter first!")
         else:
             try:
@@ -147,12 +152,12 @@ with col2:
                 if raw_data:
                     df = pd.DataFrame(raw_data)
 
-
-                    subset = df[df["event_type"] == final_event].copy()
-
-
-                    if final_item:
-                        subset = subset[subset["item_name"] == final_item]
+                    if final_plant:
+                        subset = df[df["plant"] == final_plant].copy()
+                    else:
+                        subset = df[df["event_type"] == final_event].copy()
+                        if final_item:
+                            subset = subset[subset["item_name"] == final_item]
 
                     if not subset.empty:
                         subset['x'] = pd.to_numeric(subset['x'])
@@ -175,7 +180,7 @@ with col2:
                         ax.imshow(
                             heatmap_smooth,
                             extent=[0, img_w, img_h, 0],
-                            cmap=THEMES[final_event]["cmap"],
+                            cmap=THEMES[current_mode]["cmap"],
                             alpha=alpha_val,
                             origin='upper',
                             aspect='equal',
@@ -188,7 +193,7 @@ with col2:
 
                         st.pyplot(fig, use_container_width=True)
                     else:
-                        st.info(f"No points found for {final_item if final_item else final_event}.")
+                        st.info(f"No points found for {display_label}.")
             except Exception as e:
                 st.error(f"Render Error: {e}")
     else:

@@ -71,7 +71,7 @@ with st.sidebar:
     # 2. Item Selection
     selected_item = st.selectbox(
         "2. OR Select Specific Item",
-        ["None", "Rusted Gear's", "Mushroom's", "Laboratory Reagents", "Antiseptic's"],
+        ["None", "Rusted gears", "Mushrooms", "Laboratory Reagents", "Antiseptics"],
         key="sel_item_box",
         disabled=(cat_val != "None" and cat_val != "loot"),
     )

@@ -126,9 +126,9 @@ with st.sidebar:
                **Version** 0.1.1 
            """)
 
-clean_item = selected_item.split(" ")[0] if " " in selected_item else selected_item
-clean_plant = selected_plant.split(" ")[0] if " " in selected_plant else selected_plant
-clean_event = active_event.split(" ")[0] if " " in active_event else active_event
+clean_item = selected_item.rsplit(" ", 1)[0] if " " in selected_item and selected_item != "None" else selected_item
+clean_plant = selected_plant.rsplit(" ", 1)[0] if " " in selected_plant and selected_plant != "None" else selected_plant
+clean_event = active_event.rsplit(" ", 1)[0] if " " in active_event and active_event != "None" else active_event
 
 final_item = clean_item if clean_item != "None" else None
 final_plant = clean_plant if clean_plant != "None" else None
@@ -181,7 +181,7 @@ with col1:
 
 with col2:
     if current_mode:
-        title_suffix = " with the fight overlay ⚔️" if overlay_fight else ""
+        title_suffix = " + FIGHT OVERLAY ⚔️" if overlay_fight else ""
         st.subheader(f"Map for {display_label.upper()}{title_suffix}")
 
     if render_btn:
